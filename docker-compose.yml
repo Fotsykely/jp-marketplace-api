@@ -1,19 +1,19 @@
 services:
   db:
     image: postgres:17
-    container_name: okazy-db
+    container_name: jp-marketplace-db
     environment:
-      POSTGRES_DB: okazy
-      POSTGRES_USER: okazy
-      POSTGRES_PASSWORD: okazy
+      POSTGRES_DB: jp_marketplace
+      POSTGRES_USER: jp_marketplace
+      POSTGRES_PASSWORD: jp_marketplace
     ports:
       - "5432:5432"
     volumes:
-      - okazy-pgdata:/var/lib/postgresql/data
+      - jp-marketplace-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U okazy"]
+      test: ["CMD-SHELL", "pg_isready -U jp_marketplace"]
       interval: 5s
       retries: 10
 
 volumes:
-  okazy-pgdata:
+  jp-marketplace-pgdata:

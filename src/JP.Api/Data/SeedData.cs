@@ -17,8 +17,8 @@ public static class SeedData
         var baskets = new Category { Name = "Baskets", Slug = "hommes-baskets", Parent = hommes };
         db.Categories.AddRange(femmes, hommes, robes, vestes, baskets);
 
-        var alice = new User { UserName = "alice", Email = "alice@okazy.dev", City = "Antananarivo" };
-        var bob = new User { UserName = "bob", Email = "bob@okazy.dev", City = "Toamasina" };
+        var alice = new User { UserName = "alice", Email = "alice@jp-marketplace.dev", City = "Antananarivo" };
+        var bob = new User { UserName = "bob", Email = "bob@jp-marketplace.dev", City = "Toamasina" };
         db.Users.AddRange(alice, bob);
 
         db.Items.AddRange(
