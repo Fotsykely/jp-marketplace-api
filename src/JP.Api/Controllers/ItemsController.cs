@@ -42,7 +42,7 @@ public class ItemsController(AppDbContext db) : ControllerBase
             .Select(i => new ItemSummaryDto(
                 i.Id, i.Title, i.Price, i.Brand, i.Size, i.Condition, i.Status,
                 i.Photos.OrderBy(p => p.Position).Select(p => p.Url).FirstOrDefault(),
-                i.Seller.UserName, i.CreatedAt))
+                i.Seller.UserName!, i.CreatedAt))
             .ToListAsync();
 
         return new PagedResult<ItemSummaryDto>(page, query.Page, query.PageSize, total);
@@ -58,7 +58,7 @@ public class ItemsController(AppDbContext db) : ControllerBase
             .Select(i => new ItemDetailDto(
                 i.Id, i.Title, i.Description, i.Price, i.Brand, i.Size, i.Condition, i.Status,
                 new CategoryDto(i.Category.Id, i.Category.Name, i.Category.Slug, i.Category.ParentId),
-                new SellerDto(i.Seller.Id, i.Seller.UserName, i.Seller.City),
+                new SellerDto(i.Seller.Id, i.Seller.UserName!, i.Seller.City),
                 i.Photos.OrderBy(p => p.Position).Select(p => p.Url).ToList(),
                 i.CreatedAt, i.UpdatedAt))
             .FirstOrDefaultAsync();

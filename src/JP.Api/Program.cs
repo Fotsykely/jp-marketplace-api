@@ -1,6 +1,8 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using JP.Api.Data;
+using JP.Api.Entities;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,6 +10,15 @@ var builder = WebApplication.CreateBuilder(args);
 // --- Services (the equivalent of Spring's @Bean / @Configuration) ---
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+
+// Identity: user management + password hashing. AddIdentityCore is the lightweight
+// version for APIs (no cookies, no login pages). JWT comes in the next step.
+builder.Services.AddIdentityCore<User>(o =>
+    {
+        o.User.RequireUniqueEmail = true;
+        o.Password.RequiredLength = 8;
+    })
+    .AddEntityFrameworkStores<AppDbContext>();
 
 builder.Services.AddControllers()
     // Enums as text in the JSON ("VeryGood" instead of 2)
@@ -32,7 +43,7 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
-    await SeedData.SeedAsync(db);
+    await SeedData.SeedAsync(db, scope.ServiceProvider.GetRequiredService<UserManager<User>>());
 }
 
 app.UseExceptionHandler();

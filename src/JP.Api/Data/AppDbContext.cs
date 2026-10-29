@@ -1,22 +1,27 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using JP.Api.Entities;
 
 namespace JP.Api.Data;
 
 // Spring equivalent: the EntityManager and JPA repositories combined.
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+// IdentityDbContext adds the Identity tables (users, roles...) and the Users DbSet.
+public class AppDbContext(DbContextOptions<AppDbContext> options)
+    : IdentityDbContext<User, IdentityRole<Guid>, Guid>(options)
 {
-    public DbSet<User> Users => Set<User>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<ItemPhoto> ItemPhotos => Set<ItemPhoto>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
+        // Required: Identity configures its own tables in the base method
+        base.OnModelCreating(b);
+
+        // Uniqueness of UserName/Email is enforced by Identity (see Program.cs)
         b.Entity<User>(e =>
         {
-            e.HasIndex(u => u.Email).IsUnique();
-            e.HasIndex(u => u.UserName).IsUnique();
             e.Property(u => u.UserName).HasMaxLength(50);
             e.Property(u => u.Email).HasMaxLength(255);
         });

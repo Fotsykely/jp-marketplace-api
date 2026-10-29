@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using JP.Api.Entities;
 
@@ -6,7 +7,10 @@ namespace JP.Api.Data;
 /// <summary>Demo data so there is something to display from the very first launch.</summary>
 public static class SeedData
 {
-    public static async Task SeedAsync(AppDbContext db)
+    // Demo password shared by the seeded accounts (dev only)
+    private const string DemoPassword = "Password123!";
+
+    public static async Task SeedAsync(AppDbContext db, UserManager<User> userManager)
     {
         if (await db.Categories.AnyAsync()) return;
 
@@ -19,7 +23,9 @@ public static class SeedData
 
         var alice = new User { UserName = "alice", Email = "alice@jp-marketplace.dev", City = "Antananarivo" };
         var bob = new User { UserName = "bob", Email = "bob@jp-marketplace.dev", City = "Toamasina" };
-        db.Users.AddRange(alice, bob);
+        // CreateAsync hashes the password and saves the user right away
+        await userManager.CreateAsync(alice, DemoPassword);
+        await userManager.CreateAsync(bob, DemoPassword);
 
         db.Items.AddRange(
             new Item

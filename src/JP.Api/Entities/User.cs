@@ -1,14 +1,14 @@
+using Microsoft.AspNetCore.Identity;
+
 namespace JP.Api.Entities;
 
 /// <summary>
 /// Member of the platform (seller and/or buyer).
-/// Roadmap step 2: replace with ASP.NET Core Identity.
+/// Id, UserName, Email, PasswordHash... are inherited from IdentityUser.
+/// The Guid type parameter keeps Guid identifiers, so Item.SellerId is unchanged.
 /// </summary>
-public class User
+public class User : IdentityUser<Guid>
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public required string UserName { get; set; }
-    public required string Email { get; set; }
     public string? City { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
