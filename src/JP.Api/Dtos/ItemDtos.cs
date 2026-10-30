@@ -27,8 +27,7 @@ public record CreateItemRequest(
     [StringLength(50)] string? Brand,
     [StringLength(20)] string? Size,
     ItemCondition Condition,
-    int CategoryId,
-    Guid SellerId, // Temporary: will come from the JWT token in step 2
+      int CategoryId,
     List<string>? PhotoUrls);
 
 public record UpdateItemRequest(

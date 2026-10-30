@@ -1,3 +1,6 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using JP.Api.Data;
@@ -67,13 +70,16 @@ public class ItemsController(AppDbContext db) : ControllerBase
     }
 
     // POST /api/items
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<ItemDetailDto>> Create(CreateItemRequest req)
     {
+        // The seller is the logged-in user: "sub" claim of the token, never the request body
+        if (!Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out var sellerId))
+            return Unauthorized();
+
         if (!await db.Categories.AnyAsync(c => c.Id == req.CategoryId))
             return InvalidField(nameof(req.CategoryId), "Catégorie inconnue");
-        if (!await db.Users.AnyAsync(u => u.Id == req.SellerId))
-            return InvalidField(nameof(req.SellerId), "Vendeur inconnu");
 
         var item = new Item
         {
@@ -84,7 +90,7 @@ public class ItemsController(AppDbContext db) : ControllerBase
             Size = req.Size,
             Condition = req.Condition,
             CategoryId = req.CategoryId,
-            SellerId = req.SellerId,
+            SellerId = sellerId,
             Photos = (req.PhotoUrls ?? [])
                 .Select((url, idx) => new ItemPhoto { Url = url, Position = idx })
                 .ToList()
