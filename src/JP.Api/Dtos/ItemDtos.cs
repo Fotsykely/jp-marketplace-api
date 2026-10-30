@@ -18,6 +18,9 @@ public record ItemDetailDto(
 
 public record SellerDto(Guid Id, string UserName, string? City);
 
+/// <summary>Public face of a seller. Deliberately no email or other private data.</summary>
+public record SellerProfileDto(Guid Id, string UserName, string? City, DateTime MemberSince, int AvailableItemsCount);
+
 public record CategoryDto(int Id, string Name, string Slug, int? ParentId);
 
 public record CreateItemRequest(
@@ -47,6 +50,7 @@ public class ItemQuery
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
     public ItemCondition? Condition { get; set; }
+    public Guid? SellerId { get; set; }
     public string? Sort { get; set; } // "newest" (default),"price_asc", "price_desc"
     [Range(1, int.MaxValue)] public int Page { get; set; } = 1;
     [Range(1, 100)] public int PageSize { get; set; } = 20;

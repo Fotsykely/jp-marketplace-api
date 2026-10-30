@@ -61,12 +61,18 @@ In the Development environment the app applies the EF Core migrations and insert
 
 | Method | Endpoint | Description |
 |---|---|---|
+| `POST` | `/api/auth/register` | Create an account, returns a JWT |
+| `POST` | `/api/auth/login` | Log in with user name or email, returns a JWT |
+| `GET` | `/api/auth/me` | 🔒 Current account |
+| `GET` | `/api/users/{id}` | Public seller profile (no email) |
 | `GET` | `/api/categories` | List categories (two-level hierarchy) |
 | `GET` | `/api/items` | Search the catalogue (filters, sorting, pagination) |
 | `GET` | `/api/items/{id}` | Item details |
-| `POST` | `/api/items` | Create a listing |
-| `PUT` | `/api/items/{id}` | Update a listing (rejected if already sold) |
-| `DELETE` | `/api/items/{id}` | Delete a listing |
+| `POST` | `/api/items` | 🔒 Create a listing (seller = logged-in user) |
+| `PUT` | `/api/items/{id}` | 🔒 Update a listing (owner only, rejected if already sold) |
+| `DELETE` | `/api/items/{id}` | 🔒 Delete a listing (owner only) |
+
+🔒 = requires `Authorization: Bearer <token>`. Without a token the API answers `401`; with another user's token on someone else's listing, `403`.
 
 **Catalogue query parameters** (`GET /api/items`)
 
@@ -76,6 +82,7 @@ In the Development environment the app applies the EF Core migrations and insert
 | `categoryId` | `categoryId=2` | Includes sub-categories |
 | `minPrice` / `maxPrice` | `minPrice=10000` | |
 | `condition` | `condition=NewWithTags` | `NewWithTags`, `NewWithoutTags`, `VeryGood`, `Good`, `Satisfactory` |
+| `sellerId` | `sellerId=<guid>` | Only this seller's listings |
 | `sort` | `sort=price_asc` | `newest` (default), `price_asc`, `price_desc` |
 | `page` / `pageSize` | `page=2&pageSize=20` | `pageSize` max 100 |
 
@@ -89,7 +96,8 @@ curl "http://localhost:5088/api/items?q=nike&sort=price_asc"
 
 ```
 src/JP.Api/
-├── Controllers/   HTTP endpoints (ItemsController, CategoriesController)
+├── Controllers/   HTTP endpoints (Auth, Users, Items, Categories)
+├── Services/      JWT creation (TokenService, JwtOptions)
 ├── Dtos/          Request/response models, kept separate from entities
 ├── Entities/      Domain model: User, Category, Item, ItemPhoto, enums
 ├── Data/          AppDbContext (EF Core mapping) and demo seed data
@@ -116,10 +124,10 @@ dotnet ef database update                    # apply migrations manually
 ## Roadmap
 
 **Step 2 — Accounts & security**
-- [ ] ASP.NET Core Identity + JWT authentication
-- [ ] Seller taken from the token instead of the request body
-- [ ] Only the owner can edit or delete a listing
-- [ ] Public seller profile
+- [x] ASP.NET Core Identity + JWT authentication
+- [x] Seller taken from the token instead of the request body
+- [x] Only the owner can edit or delete a listing
+- [x] Public seller profile
 
 **Step 3 — Marketplace core**
 - [ ] Photo upload (local storage, then cloud blob storage)

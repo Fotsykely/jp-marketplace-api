@@ -30,6 +30,7 @@ public class ItemsController(AppDbContext db) : ControllerBase
         if (query.MinPrice is decimal min) items = items.Where(i => i.Price >= min);
         if (query.MaxPrice is decimal max) items = items.Where(i => i.Price <= max);
         if (query.Condition is ItemCondition cond) items = items.Where(i => i.Condition == cond);
+        if (query.SellerId is Guid sellerId) items = items.Where(i => i.SellerId == sellerId);
 
         items = query.Sort switch
         {
