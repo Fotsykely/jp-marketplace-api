@@ -75,8 +75,7 @@ public class ItemsController(AppDbContext db) : ControllerBase
     public async Task<ActionResult<ItemDetailDto>> Create(CreateItemRequest req)
     {
         // The seller is the logged-in user: "sub" claim of the token, never the request body
-        if (!Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out var sellerId))
-            return Unauthorized();
+        if (CurrentUserId is not Guid sellerId) return Unauthorized();
 
         if (!await db.Categories.AnyAsync(c => c.Id == req.CategoryId))
             return InvalidField(nameof(req.CategoryId), "Catégorie inconnue");
@@ -104,11 +103,16 @@ public class ItemsController(AppDbContext db) : ControllerBase
     }
 
     // PUT /api/items/{id}
+    [Authorize]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, UpdateItemRequest req)
     {
+        if (CurrentUserId is not Guid userId) return Unauthorized();
+
         var item = await db.Items.FindAsync(id);
         if (item is null) return NotFound();
+        // Authenticated is not enough: only the seller can edit their own item
+        if (item.SellerId != userId) return Forbid();
         if (item.Status == ItemStatus.Sold)
             return Conflict(new ProblemDetails { Title = "Un article vendu ne peut plus être modifié." });
         if (!await db.Categories.AnyAsync(c => c.Id == req.CategoryId))
@@ -128,12 +132,25 @@ public class ItemsController(AppDbContext db) : ControllerBase
     }
 
     // DELETE /api/items/{id}
+    [Authorize]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var deleted = await db.Items.Where(i => i.Id == id).ExecuteDeleteAsync();
-        return deleted == 0 ? NotFound() : NoContent();
+        if (CurrentUserId is not Guid userId) return Unauthorized();
+
+        var item = await db.Items.FindAsync(id);
+        if (item is null) return NotFound();
+        // Authenticated is not enough: only the seller can delete their own item
+        if (item.SellerId != userId) return Forbid();
+
+        db.Items.Remove(item);
+        await db.SaveChangesAsync();
+        return NoContent();
     }
+
+    // Id of the logged-in user ("sub" claim), null if missing or malformed
+    private Guid? CurrentUserId =>
+        Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out var id) ? id : null;
 
     private ActionResult InvalidField(string field, string message)
     {
