@@ -80,6 +80,18 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseExceptionHandler();
+
+// Serve uploaded photos: /uploads/xxx.jpg -> <content root>/uploads/xxx.jpg
+var photoOptions = builder.Configuration.GetSection(PhotoStorageOptions.SectionName).Get<PhotoStorageOptions>()
+    ?? new PhotoStorageOptions();
+var photoDir = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, photoOptions.Directory));
+Directory.CreateDirectory(photoDir);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(photoDir),
+    RequestPath = photoOptions.RequestPath
+});
+
 app.UseCors();
 app.UseAuthentication(); // who are you? (reads the token)
 app.UseAuthorization();  // are you allowed? ([Authorize])

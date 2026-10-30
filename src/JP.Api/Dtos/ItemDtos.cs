@@ -16,6 +16,8 @@ public record ItemDetailDto(
     ItemCondition Condition, ItemStatus Status, CategoryDto Category, SellerDto Seller,
     IReadOnlyList<string> PhotoUrls, DateTime CreatedAt, DateTime? UpdatedAt);
 
+public record PhotoDto(int Id, string Url, int Position);
+
 public record SellerDto(Guid Id, string UserName, string? City);
 
 /// <summary>Public face of a seller. Deliberately no email or other private data.</summary>
