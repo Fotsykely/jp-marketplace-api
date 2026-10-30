@@ -1,8 +1,13 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
 using JP.Api.Data;
 using JP.Api.Entities;
+using JP.Api.Services;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,6 +24,29 @@ builder.Services.AddIdentityCore<User>(o =>
         o.Password.RequiredLength = 8;
     })
     .AddEntityFrameworkStores<AppDbContext>();
+
+// JWT: read the "Jwt" settings, then tell ASP.NET how to validate incoming tokens
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.AddScoped<TokenService>();
+
+var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
+    ?? throw new InvalidOperationException("Missing 'Jwt' configuration section.");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(o =>
+    {
+        o.MapInboundClaims = false; // keep claim names as written ("sub", "unique_name")
+        o.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true, ValidIssuer = jwt.Issuer,
+            ValidateAudience = true, ValidAudience = jwt.Audience,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)),
+            NameClaimType = JwtRegisteredClaimNames.UniqueName
+        };
+    });
+builder.Services.AddAuthorization();
 
 builder.Services.AddControllers()
     // Enums as text in the JSON ("VeryGood" instead of 2)
@@ -48,6 +76,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseExceptionHandler();
 app.UseCors();
+app.UseAuthentication(); // who are you? (reads the token)
+app.UseAuthorization();  // are you allowed? ([Authorize])
 app.MapControllers();
 
 app.Run();
