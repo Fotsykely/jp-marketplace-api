@@ -48,6 +48,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 builder.Services.AddAuthorization();
 
+// Photo storage: controllers depend on IPhotoStorage, so swapping to cloud storage later
+// only means changing this registration.
+builder.Services.Configure<PhotoStorageOptions>(builder.Configuration.GetSection(PhotoStorageOptions.SectionName));
+builder.Services.AddSingleton<IPhotoStorage, LocalPhotoStorage>();
+
 builder.Services.AddControllers()
     // Enums as text in the JSON ("VeryGood" instead of 2)
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));

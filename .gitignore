@@ -480,3 +480,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Uploaded photos (local storage)
+src/JP.Api/uploads/
