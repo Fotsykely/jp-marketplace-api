@@ -233,6 +233,42 @@ public class ItemsController(AppDbContext db, IPhotoStorage photos) : Controller
         return NoContent();
     }
 
+    // POST /api/items/{id}/favorite   (idempotent: already a favourite -> still 204)
+    [Authorize]
+    [HttpPost("{id:guid}/favorite")]
+    public async Task<IActionResult> AddFavorite(Guid id, CancellationToken ct)
+    {
+        if (CurrentUserId is not Guid userId) return Unauthorized();
+
+        var item = await db.Items.AsNoTracking()
+            .Where(i => i.Id == id)
+            .Select(i => new { i.SellerId })
+            .FirstOrDefaultAsync(ct);
+        if (item is null) return NotFound();
+        if (item.SellerId == userId)
+            return Conflict(new ProblemDetails { Title = "Vous ne pouvez pas mettre votre propre annonce en favori." });
+
+        if (!await db.Favorites.AnyAsync(f => f.UserId == userId && f.ItemId == id, ct))
+        {
+            db.Favorites.Add(new Favorite { UserId = userId, ItemId = id });
+            await db.SaveChangesAsync(ct);
+        }
+        return NoContent();
+    }
+
+    // DELETE /api/items/{id}/favorite   (idempotent: not a favourite -> still 204)
+    [Authorize]
+    [HttpDelete("{id:guid}/favorite")]
+    public async Task<IActionResult> RemoveFavorite(Guid id, CancellationToken ct)
+    {
+        if (CurrentUserId is not Guid userId) return Unauthorized();
+
+        await db.Favorites
+            .Where(f => f.UserId == userId && f.ItemId == id)
+            .ExecuteDeleteAsync(ct);
+        return NoContent();
+    }
+
     // Recognises JPEG / PNG / WebP from their "magic bytes"; null for anything else
     private static string? DetectImageExtension(byte[] h) => h switch
     {

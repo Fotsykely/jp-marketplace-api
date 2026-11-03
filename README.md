@@ -71,6 +71,12 @@ In the Development environment the app applies the EF Core migrations and insert
 | `POST` | `/api/items` | 🔒 Create a listing (seller = logged-in user) |
 | `PUT` | `/api/items/{id}` | 🔒 Update a listing (owner only, rejected if already sold) |
 | `DELETE` | `/api/items/{id}` | 🔒 Delete a listing (owner only) |
+| `POST` | `/api/items/{id}/photos` | 🔒 Upload a photo (multipart, field `file`; JPEG/PNG/WebP, 5 MB, 8 max; owner only) |
+| `GET` | `/api/items/{id}/photos` | List an item's photos |
+| `DELETE` | `/api/items/{id}/photos/{photoId}` | 🔒 Delete a photo (owner only) |
+| `POST` | `/api/items/{id}/favorite` | 🔒 Add to favourites (idempotent, not on your own listing) |
+| `DELETE` | `/api/items/{id}/favorite` | 🔒 Remove from favourites (idempotent) |
+| `GET` | `/api/users/me/favorites` | 🔒 My favourites, most recent first (paginated) |
 
 🔒 = requires `Authorization: Bearer <token>`. Without a token the API answers `401`; with another user's token on someone else's listing, `403`.
 
@@ -130,8 +136,9 @@ dotnet ef database update                    # apply migrations manually
 - [x] Public seller profile
 
 **Step 3 — Marketplace core**
-- [ ] Photo upload (local storage, then cloud blob storage)
-- [ ] Favourites
+- [x] Photo upload to local storage
+- [ ] Photo storage in the cloud (blob storage)
+- [x] Favourites
 - [ ] Real-time buyer ↔ seller chat with SignalR
 - [ ] Price offers
 

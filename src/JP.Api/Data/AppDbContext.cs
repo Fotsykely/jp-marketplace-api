@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<ItemPhoto> ItemPhotos => Set<ItemPhoto>();
+    public DbSet<Favorite> Favorites => Set<Favorite>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -51,6 +52,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
              .HasForeignKey(i => i.CategoryId).OnDelete(DeleteBehavior.Restrict);
             e.HasMany(i => i.Photos).WithOne(p => p.Item)
              .HasForeignKey(p => p.ItemId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<Favorite>(e =>
+        {
+            // Composite key: the database itself prevents favouriting the same item twice
+            e.HasKey(f => new { f.UserId, f.ItemId });
+            e.HasOne(f => f.User).WithMany()
+             .HasForeignKey(f => f.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(f => f.Item).WithMany()
+             .HasForeignKey(f => f.ItemId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

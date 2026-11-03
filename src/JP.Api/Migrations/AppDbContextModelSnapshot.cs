@@ -51,6 +51,24 @@ namespace JP.Api.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("JP.Api.Entities.Favorite", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId", "ItemId");
+
+                    b.HasIndex("ItemId");
+
+                    b.ToTable("Favorites");
+                });
+
             modelBuilder.Entity("JP.Api.Entities.Item", b =>
                 {
                     b.Property<Guid>("Id")
@@ -344,6 +362,25 @@ namespace JP.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("JP.Api.Entities.Favorite", b =>
+                {
+                    b.HasOne("JP.Api.Entities.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("JP.Api.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Item");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("JP.Api.Entities.Item", b =>
