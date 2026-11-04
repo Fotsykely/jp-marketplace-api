@@ -82,6 +82,8 @@ In the Development environment the app applies the EF Core migrations and insert
 | `GET` | `/api/users/me/offers` | 🔒 Offers I made, most recent first (paginated) |
 | `POST` | `/api/offers/{id}/accept` | 🔒 Accept an offer (seller only; declines the other pending offers on the item) |
 | `POST` | `/api/offers/{id}/decline` | 🔒 Decline an offer (seller only) |
+| `POST` | `/api/items/{id}/cancel-reservation` | 🔒 `Reserved → Available`; the accepted offer becomes `Cancelled` (seller only) |
+| `POST` | `/api/items/{id}/mark-sold` | 🔒 `Reserved → Sold` (seller only) |
 
 🔒 = requires `Authorization: Bearer <token>`. Without a token the API answers `401`; with another user's token on someone else's listing, `403`.
 
@@ -149,7 +151,7 @@ dotnet ef database update                    # apply migrations manually
 - [x] Price offers
 
 **Step 4 — Purchase flow**
-- [ ] Order state machine: `Available → Reserved → Sold`
+- [x] Order state machine: `Available → Reserved → Sold`
 - [ ] Stripe payment (test mode) with idempotent webhook
 - [ ] Automatic reservation expiry with a `BackgroundService`
 - [ ] Ratings and reviews

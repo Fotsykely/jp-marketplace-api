@@ -116,8 +116,8 @@ public class ItemsController(AppDbContext db, IPhotoStorage photos) : ApiControl
         if (item is null) return NotFound();
         // Authenticated is not enough: only the seller can edit their own item
         if (item.SellerId != userId) return Forbid();
-        if (item.Status == ItemStatus.Sold)
-            return Conflict(new ProblemDetails { Title = "Un article vendu ne peut plus être modifié." });
+        if (item.Status != ItemStatus.Available)
+            return Conflict(new ProblemDetails { Title = "Un article réservé ou vendu ne peut plus être modifié." });
         if (!await db.Categories.AnyAsync(c => c.Id == req.CategoryId))
             return InvalidField(nameof(req.CategoryId), "Catégorie inconnue");
 
@@ -145,9 +145,57 @@ public class ItemsController(AppDbContext db, IPhotoStorage photos) : ApiControl
         if (item is null) return NotFound();
         // Authenticated is not enough: only the seller can delete their own item
         if (item.SellerId != userId) return Forbid();
+        // A reserved item has an accepted offer behind it: cancel the reservation first
+        if (item.Status == ItemStatus.Reserved)
+            return Conflict(new ProblemDetails { Title = "Annulez d'abord la réservation avant de supprimer l'article." });
 
         db.Items.Remove(item);
         await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // POST /api/items/{id}/cancel-reservation   (seller only)
+    // Reserved -> Available, and the accepted offer is marked Cancelled so that an item
+    // never carries two accepted offers. One SaveChanges = one transaction.
+    [Authorize]
+    [HttpPost("{id:guid}/cancel-reservation")]
+    public async Task<IActionResult> CancelReservation(Guid id, CancellationToken ct)
+    {
+        if (CurrentUserId is not Guid userId) return Unauthorized();
+
+        var item = await db.Items.FindAsync([id], ct);
+        if (item is null) return NotFound();
+        if (item.SellerId != userId) return Forbid();
+        if (!item.TryTransitionTo(ItemStatus.Available))
+            return Conflict(new ProblemDetails { Title = "Seul un article réservé peut voir sa réservation annulée." });
+
+        var accepted = await db.Offers
+            .FirstOrDefaultAsync(o => o.ItemId == id && o.Status == OfferStatus.Accepted, ct);
+        if (accepted is not null)
+        {
+            accepted.Status = OfferStatus.Cancelled;
+            accepted.RespondedAt = DateTime.UtcNow;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    // POST /api/items/{id}/mark-sold   (seller only)
+    // Reserved -> Sold. Later, the Stripe webhook will trigger the same transition.
+    [Authorize]
+    [HttpPost("{id:guid}/mark-sold")]
+    public async Task<IActionResult> MarkSold(Guid id, CancellationToken ct)
+    {
+        if (CurrentUserId is not Guid userId) return Unauthorized();
+
+        var item = await db.Items.FindAsync([id], ct);
+        if (item is null) return NotFound();
+        if (item.SellerId != userId) return Forbid();
+        if (!item.TryTransitionTo(ItemStatus.Sold))
+            return Conflict(new ProblemDetails { Title = "Seul un article réservé peut être marqué comme vendu." });
+
+        await db.SaveChangesAsync(ct);
         return NoContent();
     }
 
@@ -162,8 +210,8 @@ public class ItemsController(AppDbContext db, IPhotoStorage photos) : ApiControl
         var item = await db.Items.Include(i => i.Photos).FirstOrDefaultAsync(i => i.Id == id, ct);
         if (item is null) return NotFound();
         if (item.SellerId != userId) return Forbid();
-        if (item.Status == ItemStatus.Sold)
-            return Conflict(new ProblemDetails { Title = "Un article vendu ne peut plus être modifié." });
+        if (item.Status != ItemStatus.Available)
+            return Conflict(new ProblemDetails { Title = "Un article réservé ou vendu ne peut plus être modifié." });
         if (item.Photos.Count >= MaxPhotosPerItem)
             return InvalidField(nameof(file), $"Maximum {MaxPhotosPerItem} photos par annonce");
 
@@ -218,6 +266,8 @@ public class ItemsController(AppDbContext db, IPhotoStorage photos) : ApiControl
         var item = await db.Items.Include(i => i.Photos).FirstOrDefaultAsync(i => i.Id == id, ct);
         if (item is null) return NotFound();
         if (item.SellerId != userId) return Forbid();
+        if (item.Status != ItemStatus.Available)
+            return Conflict(new ProblemDetails { Title = "Un article réservé ou vendu ne peut plus être modifié." });
 
         var photo = item.Photos.FirstOrDefault(p => p.Id == photoId);
         if (photo is null) return NotFound();

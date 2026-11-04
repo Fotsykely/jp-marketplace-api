@@ -23,5 +23,6 @@ public enum OfferStatus
 {
     Pending,  // Waiting for the seller
     Accepted, // Seller agreed to the price
-    Declined  // Seller refused (or another offer was accepted)
+    Declined, // Seller refused (or another offer was accepted)
+    Cancelled // Was accepted, then the reservation was cancelled
 }
