@@ -79,18 +79,21 @@ public class OfferService(AppDbContext db) : IOfferService
     public Task<PagedResult<OfferDto>> ListMadeByAsync(Guid buyerId, PageQuery query, CancellationToken ct) =>
         PaginateAsync(db.Offers.AsNoTracking().Where(o => o.BuyerId == buyerId), query, ct);
 
-    // Accepting also declines the other pending offers on the same item.
+    // Accepting reserves the item and declines the other pending offers on it.
     public async Task<OfferOutcome<OfferDto>> AcceptAsync(Guid offerId, Guid sellerId, CancellationToken ct)
     {
         var offer = await db.Offers.Include(o => o.Item).FirstOrDefaultAsync(o => o.Id == offerId, ct);
         if (offer is null) return OfferError.NotFound;
         if (offer.Item.SellerId != sellerId) return OfferError.NotSeller;
         if (offer.Status != OfferStatus.Pending) return OfferError.AlreadyAnswered;
-        if (offer.Item.Status != ItemStatus.Available) return OfferError.ItemUnavailable;
+        // The state machine decides: only an Available item can become Reserved
+        if (!offer.Item.CanTransitionTo(ItemStatus.Reserved)) return OfferError.ItemUnavailable;
 
         var now = DateTime.UtcNow;
-        // One transaction: the accepted offer and the declined ones change together or not at all
+        // One transaction: the reservation, the accepted offer and the declined ones
+        // change together or not at all
         await using var tx = await db.Database.BeginTransactionAsync(ct);
+        offer.Item.TryTransitionTo(ItemStatus.Reserved);
         offer.Status = OfferStatus.Accepted;
         offer.RespondedAt = now;
         await db.SaveChangesAsync(ct);
