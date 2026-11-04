@@ -21,9 +21,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         // Required: Identity configures its own tables in the base method
         base.OnModelCreating(b);
 
-        // Uniqueness of UserName/Email is enforced by Identity (see Program.cs)
+        // RequireUniqueEmail (Program.cs) only checks in code, which is racy under concurrent
+        // sign-ups. Identity's default "EmailIndex" is NOT unique, so we make it unique here.
         b.Entity<User>(e =>
         {
+            e.HasIndex(u => u.NormalizedEmail).HasDatabaseName("EmailIndex").IsUnique();
             e.Property(u => u.UserName).HasMaxLength(50);
             e.Property(u => u.Email).HasMaxLength(255);
         });
