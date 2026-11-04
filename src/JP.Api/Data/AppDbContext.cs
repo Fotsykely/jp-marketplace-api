@@ -14,6 +14,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Item> Items => Set<Item>();
     public DbSet<ItemPhoto> ItemPhotos => Set<ItemPhoto>();
     public DbSet<Favorite> Favorites => Set<Favorite>();
+    public DbSet<Offer> Offers => Set<Offer>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -62,6 +63,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
              .HasForeignKey(f => f.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(f => f.Item).WithMany()
              .HasForeignKey(f => f.ItemId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<Offer>(e =>
+        {
+            e.Property(o => o.Amount).HasPrecision(10, 2);
+            e.Property(o => o.Status).HasConversion<string>().HasMaxLength(20);
+            e.HasIndex(o => new { o.ItemId, o.Status });
+            // At most one pending offer per buyer and item, enforced by the database itself
+            e.HasIndex(o => new { o.ItemId, o.BuyerId }).IsUnique()
+             .HasFilter("\"Status\" = 'Pending'");
+
+            e.HasOne(o => o.Item).WithMany()
+             .HasForeignKey(o => o.ItemId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(o => o.Buyer).WithMany()
+             .HasForeignKey(o => o.BuyerId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

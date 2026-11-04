@@ -28,6 +28,7 @@ builder.Services.AddIdentityCore<User>(o =>
 // JWT: read the "Jwt" settings, then tell ASP.NET how to validate incoming tokens
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<IOfferService, OfferService>();
 
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("Missing 'Jwt' configuration section.");

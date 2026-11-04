@@ -1,5 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +10,7 @@ namespace JP.Api.Controllers;
 
 [ApiController]
 [Route("api/items")]
-public class ItemsController(AppDbContext db, IPhotoStorage photos) : ControllerBase
+public class ItemsController(AppDbContext db, IPhotoStorage photos) : ApiControllerBase
 {
     private const int MaxPhotosPerItem = 8;
     private const long MaxPhotoBytes = 5 * 1024 * 1024; // 5 MB
@@ -277,14 +275,4 @@ public class ItemsController(AppDbContext db, IPhotoStorage photos) : Controller
         [(byte)'R', (byte)'I', (byte)'F', (byte)'F', _, _, _, _, (byte)'W', (byte)'E', (byte)'B', (byte)'P'] => ".webp",
         _ => null
     };
-
-    // Id of the logged-in user ("sub" claim), null if missing or malformed
-    private Guid? CurrentUserId =>
-        Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out var id) ? id : null;
-
-    private ActionResult InvalidField(string field, string message)
-    {
-        ModelState.AddModelError(field, message);
-        return ValidationProblem(ModelState);
-    }
 }

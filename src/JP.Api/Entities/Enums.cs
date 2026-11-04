@@ -17,3 +17,11 @@ public enum ItemStatus
     Reserved,  // Reserved (payment in progress)
     Sold       // Sold
 }
+
+/// <summary>Lifecycle of a price offer. Pending is the only state that can still change.</summary>
+public enum OfferStatus
+{
+    Pending,  // Waiting for the seller
+    Accepted, // Seller agreed to the price
+    Declined  // Seller refused (or another offer was accepted)
+}

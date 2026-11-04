@@ -1,5 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +9,7 @@ namespace JP.Api.Controllers;
 
 [ApiController]
 [Route("api/users")]
-public class UsersController(AppDbContext db) : ControllerBase
+public class UsersController(AppDbContext db) : ApiControllerBase
 {
     // GET /api/users/{id}  (public: no email, no private data)
     [HttpGet("{id:guid}")]
@@ -53,8 +51,4 @@ public class UsersController(AppDbContext db) : ControllerBase
 
         return new PagedResult<ItemSummaryDto>(page, query.Page, query.PageSize, total);
     }
-
-    // Id of the logged-in user ("sub" claim), null if missing or malformed
-    private Guid? CurrentUserId =>
-        Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out var id) ? id : null;
 }
