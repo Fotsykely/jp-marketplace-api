@@ -30,6 +30,11 @@ builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptio
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<IOfferService, OfferService>();
 
+// Reservations that nobody pays go back on sale after a while (see appsettings)
+builder.Services.Configure<ReservationExpiryOptions>(builder.Configuration.GetSection(ReservationExpiryOptions.SectionName));
+builder.Services.AddScoped<IReservationService, ReservationService>();
+builder.Services.AddHostedService<ReservationExpiryWorker>();
+
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("Missing 'Jwt' configuration section.");
 

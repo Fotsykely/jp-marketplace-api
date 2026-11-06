@@ -153,7 +153,7 @@ dotnet ef database update                    # apply migrations manually
 **Step 4 — Purchase flow**
 - [x] Order state machine: `Available → Reserved → Sold`
 - [ ] Stripe payment (test mode) with idempotent webhook
-- [ ] Automatic reservation expiry with a `BackgroundService`
+- [x] Automatic reservation expiry with a `BackgroundService` (`ReservationExpiry` settings: `Duration` 48h, `CheckInterval` 5 min)
 - [ ] Ratings and reviews
 
 **Step 5 — Production quality**
