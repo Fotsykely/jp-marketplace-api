@@ -46,7 +46,22 @@ Host=localhost;Port=5432;Database=jp_marketplace;Username=jp_marketplace;Passwor
 
 These are local development credentials only. Real secrets (JWT keys, payment keys) will go through `dotnet user-secrets`, never in the repository.
 
-### 2. Run the API
+### 2. Configure Stripe (test mode)
+
+Create a free [Stripe](https://dashboard.stripe.com/register) account, stay in **test mode**, and install the [Stripe CLI](https://docs.stripe.com/stripe-cli). The keys go through `dotnet user-secrets` (stored outside the repository):
+
+```bash
+cd src/JP.Api
+dotnet user-secrets set "Stripe:SecretKey" "sk_test_..."      # Dashboard > Developers > API keys
+
+# In another terminal: forwards Stripe events to the API and prints the webhook secret (whsec_...)
+stripe listen --forward-to localhost:5088/api/stripe/webhook
+dotnet user-secrets set "Stripe:WebhookSecret" "whsec_..."
+```
+
+The currency is the `Stripe:Currency` setting in `appsettings.json` (`eur` by default, `mga` also works: it has no minor unit and is handled). Test card: `4242 4242 4242 4242`, any future date, any CVC.
+
+### 3. Run the API
 
 ```bash
 dotnet run --project src/JP.Api --launch-profile http
@@ -83,7 +98,8 @@ In the Development environment the app applies the EF Core migrations and insert
 | `POST` | `/api/offers/{id}/accept` | 🔒 Accept an offer (seller only; declines the other pending offers on the item) |
 | `POST` | `/api/offers/{id}/decline` | 🔒 Decline an offer (seller only) |
 | `POST` | `/api/items/{id}/cancel-reservation` | 🔒 `Reserved → Available`; the accepted offer becomes `Cancelled` (seller only) |
-| `POST` | `/api/items/{id}/mark-sold` | 🔒 `Reserved → Sold` (seller only) |
+| `POST` | `/api/items/{id}/checkout` | 🔒 Create (or reuse) a Stripe Checkout Session for a reserved item (buyer of the accepted offer only). Returns `{ "url": "..." }` to redirect the buyer to |
+| `POST` | `/api/stripe/webhook` | Called by Stripe (no JWT, verified by the `Stripe-Signature` header). Idempotent: `Reserved → Sold` once the payment is confirmed |
 
 🔒 = requires `Authorization: Bearer <token>`. Without a token the API answers `401`; with another user's token on someone else's listing, `403`.
 
@@ -109,10 +125,10 @@ curl "http://localhost:5088/api/items?q=nike&sort=price_asc"
 
 ```
 src/JP.Api/
-├── Controllers/   HTTP endpoints (Auth, Users, Items, Categories)
-├── Services/      JWT creation (TokenService, JwtOptions)
+├── Controllers/   HTTP endpoints (Auth, Users, Items, Categories, Offers, Payments, Stripe webhook)
+├── Services/      Business rules (offers, reservations, Stripe payments) and JWT creation
 ├── Dtos/          Request/response models, kept separate from entities
-├── Entities/      Domain model: User, Category, Item, ItemPhoto, enums
+├── Entities/      Domain model: User, Category, Item, ItemPhoto, Offer, Payment, enums
 ├── Data/          AppDbContext (EF Core mapping) and demo seed data
 ├── Migrations/    EF Core migrations
 └── Program.cs     Service registration and HTTP pipeline
@@ -152,7 +168,7 @@ dotnet ef database update                    # apply migrations manually
 
 **Step 4 — Purchase flow**
 - [x] Order state machine: `Available → Reserved → Sold`
-- [ ] Stripe payment (test mode) with idempotent webhook
+- [x] Stripe payment (test mode) with idempotent webhook (Checkout Session, `Stripe:Currency` setting, automatic refund if paid after the reservation ended)
 - [x] Automatic reservation expiry with a `BackgroundService` (`ReservationExpiry` settings: `Duration` 48h, `CheckInterval` 5 min)
 - [ ] Ratings and reviews
 
