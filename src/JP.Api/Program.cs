@@ -35,6 +35,11 @@ builder.Services.Configure<ReservationExpiryOptions>(builder.Configuration.GetSe
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddHostedService<ReservationExpiryWorker>();
 
+// Stripe: keys come from user-secrets (Stripe:SecretKey, Stripe:WebhookSecret)
+builder.Services.Configure<StripeOptions>(builder.Configuration.GetSection(StripeOptions.SectionName));
+Stripe.StripeConfiguration.ApiKey = builder.Configuration[$"{StripeOptions.SectionName}:SecretKey"];
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("Missing 'Jwt' configuration section.");
 
