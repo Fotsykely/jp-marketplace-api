@@ -109,3 +109,6 @@ app.UseAuthorization();  // are you allowed? ([Authorize])
 app.MapControllers();
 
 app.Run();
+
+// Makes the auto-generated Program class visible to the test projects (WebApplicationFactory<Program>)
+public partial class Program;

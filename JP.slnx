@@ -2,4 +2,8 @@
   <Folder Name="/src/">
     <Project Path="src/JP.Api/JP.Api.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/JP.Api.UnitTests/JP.Api.UnitTests.csproj" />
+    <Project Path="tests/JP.Api.IntegrationTests/JP.Api.IntegrationTests.csproj" />
+  </Folder>
 </Solution>
