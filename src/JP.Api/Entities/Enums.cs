@@ -26,3 +26,12 @@ public enum OfferStatus
     Declined, // Seller refused (or another offer was accepted)
     Cancelled // Was accepted, then the reservation was cancelled
 }
+
+/// <summary>Lifecycle of a Stripe payment.</summary>
+public enum PaymentStatus
+{
+    Pending,   // Checkout Session created, buyer has not paid yet
+    Succeeded, // Stripe confirmed the payment, the item is sold
+    Expired,   // The buyer did not pay before the session expired
+    Refunded   // Paid too late (reservation already released): money sent back automatically
+}

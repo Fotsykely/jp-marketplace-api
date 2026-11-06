@@ -15,6 +15,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ItemPhoto> ItemPhotos => Set<ItemPhoto>();
     public DbSet<Favorite> Favorites => Set<Favorite>();
     public DbSet<Offer> Offers => Set<Offer>();
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<StripeWebhookEvent> StripeWebhookEvents => Set<StripeWebhookEvent>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -80,6 +82,33 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
              .HasForeignKey(o => o.ItemId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(o => o.Buyer).WithMany()
              .HasForeignKey(o => o.BuyerId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<Payment>(e =>
+        {
+            e.Property(p => p.Amount).HasPrecision(10, 2);
+            e.Property(p => p.Currency).HasMaxLength(3);
+            e.Property(p => p.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(p => p.StripeSessionId).HasMaxLength(255);
+            e.Property(p => p.StripePaymentIntentId).HasMaxLength(255);
+            // The webhook looks a payment up by session id: unique and indexed
+            e.HasIndex(p => p.StripeSessionId).IsUnique();
+            e.HasIndex(p => new { p.ItemId, p.Status });
+
+            // Restrict: payment history must never disappear because an item or an offer is deleted
+            e.HasOne(p => p.Item).WithMany()
+             .HasForeignKey(p => p.ItemId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(p => p.Offer).WithMany()
+             .HasForeignKey(p => p.OfferId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(p => p.Buyer).WithMany()
+             .HasForeignKey(p => p.BuyerId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<StripeWebhookEvent>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasMaxLength(255);
+            e.Property(x => x.Type).HasMaxLength(100);
         });
     }
 }
