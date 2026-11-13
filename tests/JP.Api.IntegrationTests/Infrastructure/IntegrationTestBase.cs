@@ -79,6 +79,45 @@ public abstract class IntegrationTestBase(IntegrationFixture fixture) : IAsyncLi
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<ItemDetailDto>(Json))!;
     }
+
+    /// <summary>Makes an offer through the API as the given buyer and asserts it was created.</summary>
+    protected async Task<OfferDto> MakeOfferAsync(TestUser buyer, Guid itemId, decimal amount)
+    {
+        var response = await buyer.Client.PostAsJsonAsync($"/api/items/{itemId}/offers",
+            new CreateOfferRequest(amount), Json);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<OfferDto>(Json))!;
+    }
+
+    /// <summary>The seller accepts an offer through the API (the item becomes Reserved).</summary>
+    protected async Task<OfferDto> AcceptOfferAsync(TestUser seller, Guid offerId)
+    {
+        var response = await seller.Client.PostAsync($"/api/offers/{offerId}/accept", null);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<OfferDto>(Json))!;
+    }
+
+    /// <summary>Full arrangement: a listing with an accepted offer, so the item is Reserved.</summary>
+    protected async Task<(ItemDetailDto Item, OfferDto Offer)> CreateReservedItemAsync(
+        TestUser seller, TestUser buyer, int categoryId, decimal price = 50m, decimal offerAmount = 40m)
+    {
+        var item = await CreateItemAsync(seller, categoryId, price);
+        var offer = await MakeOfferAsync(buyer, item.Id, offerAmount);
+        var accepted = await AcceptOfferAsync(seller, offer.Id);
+        return (item, accepted);
+    }
+
+    /// <summary>Reads the current status of an item straight from the database.</summary>
+    protected Task<ItemStatus> GetItemStatusAsync(Guid itemId) =>
+        WithDbAsync(db => Task.FromResult(db.Items.Single(i => i.Id == itemId).Status));
+
+    /// <summary>Forces an item status in the database (arrange step, bypassing the API rules).</summary>
+    protected Task SetItemStatusAsync(Guid itemId, ItemStatus status) =>
+        WithDbAsync(async db =>
+        {
+            db.Items.Single(i => i.Id == itemId).Status = status;
+            await db.SaveChangesAsync();
+        });
 }
 
 /// <summary>A registered user plus an HTTP client already carrying their token.</summary>
